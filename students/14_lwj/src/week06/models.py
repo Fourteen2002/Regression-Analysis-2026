@@ -14,9 +14,12 @@ class MyLinearRegression:
     def fit(self, X, y):
         self.n_, self.p_ = X.shape
         self.y_ = y.copy()
+        # 加入截距项
         self.X_b_ = np.c_[np.ones((self.n_, 1)), X]
-        # 使用lstsq代替inv，解决奇异矩阵问题
+        
+        # ✅ 关键修改：使用 lstsq 代替 inv，彻底解决奇异矩阵问题
         self.beta_hat_ = np.linalg.lstsq(self.X_b_, y, rcond=None)[0]
+        
         self.intercept_ = self.beta_hat_[0]
         self.coef_ = self.beta_hat_[1:]
         return self
@@ -37,12 +40,21 @@ class MyLinearRegression:
         return 1 - ss_res / ss_total
 
     def f_test(self, C, d):
+        """
+        F检验：检验 H0: C @ beta = d
+        """
         if self.beta_hat_ is None:
             raise RuntimeError("模型尚未拟合，请先调用 fit 方法")
+        
+        # 无约束模型的残差平方和
         y_pred_unrestricted = self.X_b_ @ self.beta_hat_
         rss_unrestricted = np.sum((self.y_ - y_pred_unrestricted) ** 2)
+        
+        # 计算受限估计（使用伪逆防止奇异）
         XTX = self.X_b_.T @ self.X_b_
         XTX_inv = np.linalg.pinv(XTX)
+        
+        # 求解受限参数
         try:
             C_XTX_inv = C @ XTX_inv
             temp = C_XTX_inv @ C.T
@@ -51,10 +63,15 @@ class MyLinearRegression:
             beta_restricted = self.beta_hat_ - XTX_inv @ C.T @ lambda_
         except np.linalg.LinAlgError:
             return np.nan, np.nan
+        
+        # 受限模型的残差平方和
         y_pred_restricted = self.X_b_ @ beta_restricted
         rss_restricted = np.sum((self.y_ - y_pred_restricted) ** 2)
+        
+        # F统计量
         q = C.shape[0]
         df_residual = self.n_ - (self.p_ + 1)
         F_stat = ((rss_restricted - rss_unrestricted) / q) / (rss_unrestricted / df_residual)
         p_value = 1 - f.cdf(F_stat, q, df_residual)
+        
         return F_stat, p_value
