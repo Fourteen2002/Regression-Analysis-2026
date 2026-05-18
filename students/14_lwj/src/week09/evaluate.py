@@ -1,8 +1,7 @@
 import sys
 from pathlib import Path
 
-# --- 关键修复：自动把src目录加入Python路径 ---
-# 获取当前脚本（evaluate.py）的路径
+
 current_script_path = Path(__file__).resolve()
 # week09 目录
 week09_dir = current_script_path.parent
@@ -11,7 +10,7 @@ src_root_dir = week09_dir.parent
 # 把src目录加入Python的模块搜索路径
 sys.path.insert(0, str(src_root_dir))
 
-# 现在可以正常导入utils了
+
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import KFold
